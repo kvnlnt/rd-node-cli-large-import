@@ -1,65 +1,7 @@
 module.exports = {
 
-   unique_columns: [  
-      ["CHECKSUM FILE", ""],
-      ["CLASS NOMENCLATURE", ""],
-      ["CLASS PRODUCTS", ""],
-      ["CLASS PRODUCTS ON FORMULARY", ""],
-      ["COINSURANCE", ""],
-      ["COPAY RANGE", ""],
-      ["CREATED AT (TIME STAMP)", ""],
-      ["DRUG ID", ""],
-      ["DRUG NAME", ""],
-      ["FF PLAN ID", ""],
-      ["FF PLAN NAME", ""],
-      ["FF PLAN TYPE", ""],
-      ["FF PRODUCT ID", ""],
-      ["FF PROVIDER ID", ""],
-      ["FF PROVIDER NAME", ""],
-      ["FF PROVIDER-TYPE ID", ""],
-      ["FF PROVIDER-TYPE NAME", ""],
-      ["FILE NAME", ""],
-      ["IMS PAYER ID", ""],
-      ["IMS PAYER NAME", ""],
-      ["IMS PAYER/PLAN ID", ""],
-      ["IMS PLAN NAME", ""],
-      ["MATERIAL RESTRICTION", ""],
-      ["NNI ID", ""],
-      ["NNI NAME", ""],
-      ["OR", ""],
-      ["PA", ""],
-      ["PARENT ID", ""],
-      ["PARENT NAME", ""],
-      ["PBM_FUNCTION_ID", ""],
-      ["PBM_FUNCTION_NAME", ""],
-      ["PBM_ID", ""],
-      ["PBM_NAME", ""],
-      ["PLAN TYPE", ""],
-      ["PLAN_ID", ""],
-      ["PLAN_NAME", ""],
-      ["PREFERRED BRAND TIER", ""],
-      ["PROVIDER ID", ""],
-      ["PROVIDER NAME", ""],
-      ["QL", ""],
-      ["REASON CODE", ""],
-      ["RECORD COUNT", ""],
-      ["RESTRICTION DETAIL", ""],
-      ["ST", ""],
-      ["STATE(S) OF OPERATION", ""],
-      ["STATUS", ""],
-      ["SUBCLASS NAME", ""],
-      ["SUBCLASS NOMENCLATURE", ""],
-      ["SUBCLASS PRODUCTS", ""],
-      ["SUBCLASS PRODUCTS ON FORMULARY", ""],
-      ["TIER", ""],
-      ["WK PLAN ID", ""],
-      ["WK PLAN NAME", ""],
-      ["ZIP CODE", ""],
-      ["ZIP CODE LIVES", ""]
-   ],
-
    schema: {  
-      "DATA/FF_IMS_HIERARCHY.TXT":[  
+      "DATA/FF IMS HIERARCHY.TXT":[  
          "FF PLAN ID",
          "FF PLAN NAME",
          "FF PLAN TYPE",
@@ -74,7 +16,7 @@ module.exports = {
          "NNI ID",
          "NNI NAME"
       ],
-      "DATA/FF_WK_HIERARCHY.TXT":[  
+      "DATA/FF WK HIERARCHY.TXT":[  
          "FF PLAN ID",
          "FF PLAN NAME",
          "FF PLAN TYPE",
@@ -87,7 +29,7 @@ module.exports = {
          "NNI ID",
          "NNI NAME"
       ],
-      "DATA/FORMULARY_EXTRACT.TXT":[  
+      "DATA/FORMULARY EXTRACT.TXT":[  
          "FF PLAN ID",
          "FF PLAN NAME",
          "PROVIDER ID",
@@ -109,7 +51,7 @@ module.exports = {
          "REASON CODE",
          "RESTRICTION DETAIL"
       ],
-      "DATA/PBM_DATA.TXT":[  
+      "DATA/PBM DATA.TXT":[  
          "PLAN_ID",
          "PLAN_NAME",
          "PBM_ID",
@@ -117,7 +59,7 @@ module.exports = {
          "PBM_FUNCTION_ID",
          "PBM_FUNCTION_NAME"
       ],
-      "DATA/TIER_NOMENCLATURE.TXT":[  
+      "DATA/TIER NOMENCLATURE.TXT":[  
          "FF PLAN ID",
          "FF PRODUCT ID",
          "STATUS",
@@ -137,7 +79,7 @@ module.exports = {
          "RESTRICTION DETAIL",
          "COPAY RANGE"
       ],
-      "DATA/ZIP_LEVEL_LIVES.TXT":[  
+      "DATA/ZIP LEVEL LIVES.TXT":[  
          "FF PLAN ID",
          "ZIP CODE",
          "ZIP CODE LIVES"

@@ -1,0 +1,7 @@
+FORMULARY
+    DRUG_CAT    Main product category
+    DRUG_NAME   Name of drug   
+    PLAN_TIER   Tier (exclusive, preferred, lowest brand co-pay)
+    PLAN_NAME   Name of the plan
+    PLAN_ZIP    Zipcode of plan
+
