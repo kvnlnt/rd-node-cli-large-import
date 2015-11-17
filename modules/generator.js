@@ -9,6 +9,8 @@ var Analyzer = require('./analyzer');
 var events = require('events');
 var eventEmitter = new events.EventEmitter();
 var humanize = require('humanize');
+var sqlite3 = require('sqlite3').verbose();
+var db = new sqlite3.Database('./data/db.sqlite');
 
 /**
  * Main Generator function
@@ -35,7 +37,7 @@ Generator.prototype = {
 
         var that = this;
         var fileName = this.getFileNameFromFilepath(filePath);
-        var tableName = this.getTableNameFromFilePath(filePath).replace('.TXT', '');
+        var tableName = this.dbFormatText(filePath);
         var schema = this.schema[this.getFileNameFromFilepath(filePath)];
         var records = 1;
         var instream = fs.createReadStream(filePath);
@@ -82,8 +84,34 @@ Generator.prototype = {
      * @param  {String} filePath string of filename
      * @return {String}          reformatted name
      */
-    getTableNameFromFilePath: function(filePath){
-        return this.getFileNameFromFilepath(filePath).replace(/ /g,"_");
+    dbFormatText: function(filePath){
+        return this.getFileNameFromFilepath(filePath)
+        .replace(/(\s+|-|\(|\))/g,"_").replace(".TXT",'');
+    },
+
+    /**
+     * Create internal sqlite database of data
+     * @param  {Function} cb callback to run upon completion
+     */
+    createDB: function(cb){
+
+        var that = this;
+
+        console.log('\nCREATING TABLES'.blue);
+        db.serialize(function() {
+            for(var t in that.schema){
+                var table = that.dbFormatText(t);
+                var columns = that.schema[t].map(function(column){
+                    return "'" + that.dbFormatText(column) + "' TEXT";
+                }).join(", ");
+                var createStatement = "CREATE TABLE " + table + " (" + columns + ")";
+                db.run("DROP TABLE IF EXISTS " + table);
+                db.run(createStatement);
+                console.log(table);
+            }
+        });
+
+        // cb();
     },
 
     /**
@@ -117,13 +145,15 @@ Generator.prototype = {
             // store files to process and kick off data import
             glob(that.options.folder+"/*.txt", function(er, filePaths){
                 that.filesToProcess = filePaths;
-
-                // inform user of long running process about to go down
-                console.log("\nIMPORTING".blue, filePaths.length, "FILES INTO SQLITE".blue, "\nThis will take a few minutes");
-                eventEmitter.on('dataStreamedToSqlite', function(scope){
-                    that.importData(scope);
+                // create database before import silly!
+                that.createDB(function(){
+                    // inform user of long running process about to go down
+                    console.log("\nIMPORTING".blue, filePaths.length, "FILES INTO SQLITE".blue, "\nThis will take a few minutes");
+                    eventEmitter.on('dataStreamedToSqlite', function(scope){
+                        that.importData(scope);
+                    });
+                    that.importData(that);
                 });
-                that.importData(that);
             });
 
         });

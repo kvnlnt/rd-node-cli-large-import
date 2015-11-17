@@ -1,5 +1,9 @@
 module.exports = {
 
+   filter: {
+
+   },
+
    schema: {  
       "FF IMS HIERARCHY.TXT":[  
          "FF PLAN ID",
