@@ -27,7 +27,7 @@ var questions = [
     type: 'list',
     name: 'mode',
 
-    message: 'What are you looking to?',
+    message: 'What are you looking to do?',
     choices: [
       'Generate',
       'Analyze'
@@ -35,12 +35,9 @@ var questions = [
   },
 
   { 
-    when: function(response){
-      return response.mode === 'Analyze'
-    },
     type: 'list',
     name: 'folder',
-    message: "Select the folder you'd like to analyze",
+    message: "Select the folder containg your exports",
     choices: dataFolders
   }
 
@@ -54,7 +51,7 @@ inquirer.prompt(questions, function(answers) {
     var analyzer = new Analyzer(answers);
     analyzer.analyze();
   } else {
-    var generator = new Generator();
+    var generator = new Generator(answers);
     generator.generate();
   }
 

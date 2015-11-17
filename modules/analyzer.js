@@ -110,7 +110,7 @@ Analyzer.prototype = {
      * Analyze schema
      * @return {[type]} [description]
      */
-    analyze: function(){
+    analyze: function(cb){
 
         var that = this;
 
@@ -137,9 +137,10 @@ Analyzer.prototype = {
 
                 // files diff 
                 console.log("\nCHECK FILES".blue);
-                if(configSchemaDiff.length) console.log("New schema is missing files: ", configSchemaDiff);
-                if(schemaDiff.length) console.log("New schema has added files:", schemaDiff);
-                if(0 === configSchemaDiff.length && 0 === schemaDiff.length) console.log("Files look ok");
+                if(configSchemaDiff.length) console.log("New schema is missing files:".red, configSchemaDiff);
+                if(schemaDiff.length) console.log("New schema has added files:".red, schemaDiff);
+                var filesAndSchemaOK = 0 === configSchemaDiff.length && 0 === schemaDiff.length;
+                if(filesAndSchemaOK) console.log("Files look ok");
 
                 console.log("\nCHECK SCHEMA".blue);
                 // compare new schema's file columns to current
@@ -163,7 +164,9 @@ Analyzer.prototype = {
                 console.log("\nSCHEMA".blue);
                 console.log(JSON.stringify(schema));
 
-                return schema;
+                // for external use, run a callback with the schema
+                if(cb) cb(schema, filesAndSchemaOK);
+
             });
             
 
