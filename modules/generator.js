@@ -28,7 +28,7 @@ function Generator(options){
 Generator.prototype = {
 
     /**
-     * Streams file data to table
+     * Streams file data to table line by line
      * @param  {String}   filePath file path to file
      */
     streamDataToSqlite: function(filePath){
@@ -114,7 +114,7 @@ Generator.prototype = {
             // if we got here, the schema is ok, store schema for later use
             that.schema = schema;
 
-            // loop and stream all files to local sqlite db
+            // store files to process and kick off data import
             glob(that.options.folder+"/*.txt", function(er, filePaths){
                 that.filesToProcess = filePaths;
 
