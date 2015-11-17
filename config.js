@@ -1,7 +1,7 @@
 module.exports = {
 
    schema: {  
-      "DATA/FF IMS HIERARCHY.TXT":[  
+      "FF IMS HIERARCHY.TXT":[  
          "FF PLAN ID",
          "FF PLAN NAME",
          "FF PLAN TYPE",
@@ -16,7 +16,7 @@ module.exports = {
          "NNI ID",
          "NNI NAME"
       ],
-      "DATA/FF WK HIERARCHY.TXT":[  
+      "FF WK HIERARCHY.TXT":[  
          "FF PLAN ID",
          "FF PLAN NAME",
          "FF PLAN TYPE",
@@ -29,7 +29,7 @@ module.exports = {
          "NNI ID",
          "NNI NAME"
       ],
-      "DATA/FORMULARY EXTRACT.TXT":[  
+      "FORMULARY EXTRACT.TXT":[  
          "FF PLAN ID",
          "FF PLAN NAME",
          "PROVIDER ID",
@@ -51,7 +51,13 @@ module.exports = {
          "REASON CODE",
          "RESTRICTION DETAIL"
       ],
-      "DATA/PBM DATA.TXT":[  
+      "CONTROL.TXT":[  
+         "FILE NAME",
+         "RECORD COUNT",
+         "CREATED AT (TIME STAMP)",
+         "CHECKSUM FILE"
+      ],
+      "PBM DATA.TXT":[  
          "PLAN_ID",
          "PLAN_NAME",
          "PBM_ID",
@@ -59,7 +65,7 @@ module.exports = {
          "PBM_FUNCTION_ID",
          "PBM_FUNCTION_NAME"
       ],
-      "DATA/TIER NOMENCLATURE.TXT":[  
+      "TIER NOMENCLATURE.TXT":[  
          "FF PLAN ID",
          "FF PRODUCT ID",
          "STATUS",
@@ -79,16 +85,10 @@ module.exports = {
          "RESTRICTION DETAIL",
          "COPAY RANGE"
       ],
-      "DATA/ZIP LEVEL LIVES.TXT":[  
+      "ZIP LEVEL LIVES.TXT":[  
          "FF PLAN ID",
          "ZIP CODE",
          "ZIP CODE LIVES"
-      ],
-      "DATA/CONTROL.TXT":[  
-         "FILE NAME",
-         "RECORD COUNT",
-         "CREATED AT (TIME STAMP)",
-         "CHECKSUM FILE"
       ]
    }
    

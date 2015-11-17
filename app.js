@@ -1,5 +1,21 @@
 var inquirer = require("inquirer");
-var Analyzer = require("./analyzer");
+var Analyzer = require("./modules/analyzer");
+var Generator = require("./modules/generator");
+var fs = require('fs');
+var path = require('path');
+
+/**
+ * list all directories in a directory
+ * @param  {[type]} srcpath [description]
+ * @return {[type]}         [description]
+ */
+function getDirectories(srcpath) {
+  return fs.readdirSync(srcpath).filter(function(file) {
+    return fs.statSync(path.join(srcpath, file)).isDirectory();
+  });
+}
+
+var dataFolders = getDirectories('./data').map(function(dir){ return './data/' + dir});
 
 /**
  * Interactive Commandline Program
@@ -7,13 +23,26 @@ var Analyzer = require("./analyzer");
  */
 var questions = [
 
-  // Schema args
   { 
-    type: 'input',
-    name: 'folder',
-    message: 'Name of folder containing the formulary exports',
-  }
+    type: 'list',
+    name: 'mode',
 
+    message: 'What are you looking to?',
+    choices: [
+      'Generate',
+      'Analyze'
+    ]
+  },
+
+  { 
+    when: function(response){
+      return response.mode === 'Analyze'
+    },
+    type: 'list',
+    name: 'folder',
+    message: "Select the folder you'd like to analyze",
+    choices: dataFolders
+  }
 
 ];
 
@@ -21,7 +50,12 @@ var questions = [
 inquirer.prompt(questions, function(answers) {
 
   // Create main instance of analyzer
-  var analyzer = new Analyzer(answers);
-  analyzer.analyzeSchema();
+  if(answers.mode === 'Analyze'){
+    var analyzer = new Analyzer(answers);
+    analyzer.analyze();
+  } else {
+    var generator = new Generator();
+    generator.generate();
+  }
 
 });

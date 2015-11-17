@@ -1,7 +1,7 @@
 var fs = require("fs");
 var glob = require("glob");
 var _ = require("lodash");
-var config = require("./config");
+var config = require("../config");
 var colors = require('colors');
 
 /**
@@ -50,6 +50,7 @@ Analyzer.prototype = {
     getSchemaData: function(filePaths, cb){
 
         var streamedFiles = {};
+        var fileNames = filePaths.map(function(filePath){ return _.last(filePath.split('/')); });
         var that = this;
 
         /**
@@ -88,10 +89,11 @@ Analyzer.prototype = {
         function isFinished(filePath, data){
 
             // collect data
-            streamedFiles[filePath] = data;
+            var fileName = _.last(filePath.split('/'));
+            streamedFiles[fileName] = data;
 
             // if the keys are same, we're good to go
-            var diff = _.difference(filePaths, _.keys(streamedFiles));
+            var diff = _.difference(fileNames, _.keys(streamedFiles));
 
             // if done, send final data back to callback
             if(!diff.length) cb(streamedFiles);
@@ -108,7 +110,8 @@ Analyzer.prototype = {
      * Analyze schema
      * @return {[type]} [description]
      */
-    analyzeSchema: function(){
+    analyze: function(){
+
         var that = this;
 
         // get all txt files
@@ -116,10 +119,10 @@ Analyzer.prototype = {
 
             // get all data
             that.getSchemaData(filePaths, function(column_data){
+
                 var schema = {};
                 var all_columns = [];
                 var columns;
-                var report_directory = 'reports/'+that.options.save_folder;
 
                 // loop data
                 for(var table in column_data){
@@ -159,6 +162,8 @@ Analyzer.prototype = {
                 // the new schema looks like this
                 console.log("\nSCHEMA".blue);
                 console.log(JSON.stringify(schema));
+
+                return schema;
             });
             
 
