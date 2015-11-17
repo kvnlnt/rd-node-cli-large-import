@@ -1,7 +1,14 @@
 module.exports = {
 
    filter: {
-
+      productList:[
+         "Activella",
+         "Victoza",
+         "Levemir",
+         "Vagifem",
+         "Novo", 
+         "Norditropin"
+      ]
    },
 
    schema: {  

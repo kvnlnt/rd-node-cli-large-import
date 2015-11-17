@@ -97,7 +97,7 @@ Generator.prototype = {
 
         var that = this;
 
-        console.log('\nCREATING TABLES'.blue);
+        console.log('\nCREATING INTERNAL DATABASE'.blue);
         db.serialize(function() {
             for(var t in that.schema){
                 var table = that.dbFormatText(t);
@@ -106,12 +106,13 @@ Generator.prototype = {
                 }).join(", ");
                 var createStatement = "CREATE TABLE " + table + " (" + columns + ")";
                 db.run("DROP TABLE IF EXISTS " + table);
+                console.log("CREATING TABLE".yellow, table);
                 db.run(createStatement);
-                console.log(table);
             }
+            console.log("\nDATABASE CREATED".blue);
         });
 
-        // cb();
+        cb();
     },
 
     /**
@@ -148,7 +149,7 @@ Generator.prototype = {
                 // create database before import silly!
                 that.createDB(function(){
                     // inform user of long running process about to go down
-                    console.log("\nIMPORTING".blue, filePaths.length, "FILES INTO SQLITE".blue, "\nThis will take a few minutes");
+                    console.log("\nIMPORTING".blue, filePaths.length, "FILES INTO DATABASE".blue, "\nThis will take a few minutes");
                     eventEmitter.on('dataStreamedToSqlite', function(scope){
                         that.importData(scope);
                     });
