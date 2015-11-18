@@ -12,7 +12,8 @@ module.exports = {
    },
 
    filesToProcess:[
-      "FORMULARY EXTRACT.TXT"
+      "FORMULARY EXTRACT.TXT",
+      "CONTROL.TXT"
    ],
 
    schema: {  

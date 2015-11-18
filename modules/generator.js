@@ -6,8 +6,6 @@ var _ = require("lodash");
 var config = require("../config");
 var colors = require('colors');
 var Analyzer = require('./analyzer');
-var events = require('events');
-var eventEmitter = new events.EventEmitter();
 var humanize = require('humanize');
 var sqlite3 = require('sqlite3').verbose();
 var db = new sqlite3.Database('./data/db.sqlite');
@@ -39,13 +37,25 @@ Generator.prototype = {
         var fileName             = this.getFileNameFromFilepath(filePath);
         var tableName            = this.dbFormatText(filePath);
         var schema               = this.schema[this.getFileNameFromFilepath(filePath)];
-        var re_formulary_extract = new RegExp("("+config.filter.productList.join("|")+")", "gi");
         var columns              = that.schema[fileName].map(function(column){ return "'" + that.dbFormatText(column) + "'"; }).join(", ");
         var column_placeholders  = that.schema[fileName].map(function(){ return '?'; }).join(', ');
         var sqlInsertString      = "INSERT INTO "+tableName+" ("+columns+") VALUES ("+column_placeholders+")";
         var isMatch              = false;
         var instream             = fs.createReadStream(filePath);
         var records              = [];
+        var re                   = null;
+
+        // calc regex
+        switch(fileName){
+            case "FORMULARY EXTRACT.TXT":
+                re = new RegExp("("+config.filter.productList.join("|")+")", "gi");
+                break;
+            case "CONTROL.TXT":
+                re = new RegExp(".*", "gi");
+            default:
+                re = new RegExp(".*", "gi");
+                break;
+        }
 
         // create line reader interface
         var lineReader = readline.createInterface({
@@ -53,38 +63,75 @@ Generator.prototype = {
             terminal: false
         });
 
-        // on each line, collect
+        console.log("READING".yellow, fileName);
+
+        // on each line, collect values
         lineReader.on('line', function(line) {
-            isMatch = line.match(re_formulary_extract);
+
+            // regex row
+            isMatch = line.match(re);
+                
+            // if this is a match, collect it
             if(isMatch){
                 line_values = line.split('|');
                 records.push(line_values);
-                process.stdout.write("records found " + humanize.numberFormat(records.length, 0) + " \r");
+                process.stdout.write("RECORDS FOUND ".yellow + humanize.numberFormat(records.length, 0) + " \r");
             }
+
         });
 
-        var vals = ['FF_PLAN_ID', 'FF_PLAN_NAME', 'PROVIDER_ID', 'PROVIDER_NAME', 'PARENT_ID', 'PARENT_NAME', 'PLAN_TYPE', 'STATE_S__OF_OPERATION', 'PREFERRED_BRAND_TIER', 'DRUG_ID', 'DRUG_NAME', 'TIER', 'COPAY_RANGE', 'COINSURANCE', 'PA', 'QL', 'ST', 'OR', 'REASON_CODE', 'RESTRICTION_DETAIL'];
-
-        // when all done reading file
+        // when all done with streaming the file
         lineReader.on('close', function(){
-            console.log("\n", sqlInsertString);
-            db.run(sqlInsertString, records[0]);
-            db.run(sqlInsertString, records[1]);
-            // for(var records in records){
-            //     db.run(sqlInsertString, vals);
-            // }
+
+            console.log("RECORDS FOUND".yellow, records.length);
+
+            // create a big sqlite friendly values list
+            var values = records.map(function(record){
+                return "(" + record.map(function(val){
+                    return "'" + that.escape(val) + "'";
+                }) + ")";
+            }).join(', ');
+
+            // build a final insert statement
+            var insertStatement = "INSERT INTO "+tableName+" ("+columns+") VALUES " + values;
+
+            console.log("INSERTING RECORDS INTO".yellow, tableName);
+
+            // run the insert statement
+            db.run(insertStatement, function(){
+
+                // all done!
+                console.log("RECORDS INSERTED".yellow, records.length, "\n");
+
+                // advance call to next file to stream
+                that.importData();
+            });
+
         });
         
+    },
+
+    /**
+     * helper escape function for sqlite inadequacies
+     * @type {[type]}
+     */
+    escape: function(value) {
+        if (value && value.replace) {
+            return value.replace(/'/g, "''");
+        }
+        else {
+            return value;
+        }
     },
 
     /**
      * Helper function to syncrhonize data imports
      * @param  {object} scope this scope of the main Generator object
      */
-    importData: function(scope){
-        if(scope.filesToProcess.length){
-            var fileToProcess = scope.filesToProcess.pop();
-            scope.streamDataToSqlite(fileToProcess);
+    importData: function(){
+        if(this.filesToProcess.length){
+            var fileToProcess = this.filesToProcess.pop();
+            this.streamDataToSqlite(fileToProcess);
         }
     },
 
@@ -170,17 +217,12 @@ Generator.prototype = {
             that.filesToProcess = config.filesToProcess.map(function(file){
                 return that.options.folder + "/" + file;
             });
-
-            // register a listener here for streamed inputs
-            eventEmitter.on('streamDataToSqliteComplete', function(scope){
-                that.importData(scope);
-            });
             
             // create database before import silly!
             that.createDB(function(){
                 // inform user of long running process about to go down
-                console.log("\nIMPORTING".blue, config.filesToProcess.length, "FILES INTO DATABASE".blue, "\nThis will take a few minutes");
-                that.importData(that);
+                console.log("\nIMPORTING".blue, config.filesToProcess.length, "FILES INTO DATABASE".blue);
+                that.importData();
             });
 
         });
