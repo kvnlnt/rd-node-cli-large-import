@@ -45,6 +45,10 @@ Generator.prototype = {
         var records              = [];
         var re                   = null;
 
+
+        // empty the table first
+        db.run("DELETE FROM " + tableName + " WHERE 1=1");
+
         // calc regex
         switch(fileName){
             case "FORMULARY EXTRACT.TXT":
@@ -75,7 +79,7 @@ Generator.prototype = {
             if(isMatch){
                 line_values = line.split('|');
                 records.push(line_values);
-                process.stdout.write("RECORDS FOUND ".yellow + humanize.numberFormat(records.length, 0) + " \r");
+                process.stdout.write("RELEVANT RECORDS FOUND ".yellow + humanize.numberFormat(records.length, 0) + " \r");
             }
 
         });
@@ -83,7 +87,7 @@ Generator.prototype = {
         // when all done with streaming the file
         lineReader.on('close', function(){
 
-            console.log("RECORDS FOUND".yellow, records.length);
+            console.log("RELEVANT RECORDS FOUND".yellow, records.length);
 
             // create a big sqlite friendly values list
             var values = records.map(function(record){
@@ -98,7 +102,9 @@ Generator.prototype = {
             console.log("INSERTING RECORDS INTO".yellow, tableName);
 
             // run the insert statement
-            db.run(insertStatement, function(){
+            db.run(insertStatement, function(err){
+
+                if(err) console.log("ERROR".red, err);
 
                 // all done!
                 console.log("RECORDS INSERTED".yellow, records.length, "\n");
@@ -172,14 +178,17 @@ Generator.prototype = {
                 var columns = that.schema[t].map(function(column){
                     return "'" + that.dbFormatText(column) + "' TEXT";
                 }).join(", ");
-                var createStatement = "CREATE TABLE " + table + " (" + columns + ")";
-                db.run("DROP TABLE IF EXISTS " + table);
+                var createStatement = "CREATE TABLE IF NOT EXISTS " + table + " (" + columns + ")";
                 console.log("CREATING TABLE".yellow, table);
                 db.run(createStatement);
             }
+
             // after it's all said and done you can run the callback that presumably
             // will now be importing the actual data
             // make sure to call it here within serialize!
+            // XXX: there maybe an issue here that it's NOT serialized. I encountered empty data
+            // when I used a DROP TABLE statement here, we might have to check if all tables are created
+            // in each run callback and then run this final callback
             cb();
         });
 
