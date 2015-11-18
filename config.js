@@ -11,11 +11,6 @@ module.exports = {
       ]
    },
 
-   filesToProcess:[
-      "FORMULARY EXTRACT.TXT",
-      "CONTROL.TXT"
-   ],
-
    schema: {  
       "FF IMS HIERARCHY.TXT":[  
          "FF PLAN ID",
