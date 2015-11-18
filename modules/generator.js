@@ -35,26 +35,44 @@ Generator.prototype = {
      */
     streamDataToSqlite: function(filePath){
 
-        var that = this;
-        var fileName = this.getFileNameFromFilepath(filePath);
-        var tableName = this.dbFormatText(filePath);
-        var schema = this.schema[this.getFileNameFromFilepath(filePath)];
-        var records = 1;
-        var instream = fs.createReadStream(filePath);
-        var rl = readline.createInterface({ input: instream });
+        var that                 = this;
+        var fileName             = this.getFileNameFromFilepath(filePath);
+        var tableName            = this.dbFormatText(filePath);
+        var schema               = this.schema[this.getFileNameFromFilepath(filePath)];
+        var re_formulary_extract = new RegExp("("+config.filter.productList.join("|")+")", "gi");
+        var columns              = that.schema[fileName].map(function(column){ return "'" + that.dbFormatText(column) + "'"; }).join(", ");
+        var column_placeholders  = that.schema[fileName].map(function(){ return '?'; }).join(', ');
+        var sqlInsertString      = "INSERT INTO "+tableName+" ("+columns+") VALUES ("+column_placeholders+")";
+        var isMatch              = false;
+        var instream             = fs.createReadStream(filePath);
+        var records              = [];
 
-        rl.on('line', function(line) {
-            records +=1;
-            // console.log(line);
+        // create line reader interface
+        var lineReader = readline.createInterface({
+            input: instream,
+            terminal: false
         });
 
-        instream.on('open', function(){
-            console.log("\nPROCESSING".yellow, filePath);
+        // on each line, collect
+        lineReader.on('line', function(line) {
+            isMatch = line.match(re_formulary_extract);
+            if(isMatch){
+                line_values = line.split('|');
+                records.push(line_values);
+                process.stdout.write("records found " + humanize.numberFormat(records.length, 0) + " \r");
+            }
         });
 
-        instream.on('end', function(){
-            eventEmitter.emit('dataStreamedToSqlite', that);
-            console.log("\n", humanize.numberFormat(records, 0), "RECORDS IMPORTED INTO TABLE:".blue, tableName);
+        var vals = ['FF_PLAN_ID', 'FF_PLAN_NAME', 'PROVIDER_ID', 'PROVIDER_NAME', 'PARENT_ID', 'PARENT_NAME', 'PLAN_TYPE', 'STATE_S__OF_OPERATION', 'PREFERRED_BRAND_TIER', 'DRUG_ID', 'DRUG_NAME', 'TIER', 'COPAY_RANGE', 'COINSURANCE', 'PA', 'QL', 'ST', 'OR', 'REASON_CODE', 'RESTRICTION_DETAIL'];
+
+        // when all done reading file
+        lineReader.on('close', function(){
+            console.log("\n", sqlInsertString);
+            db.run(sqlInsertString, records[0]);
+            db.run(sqlInsertString, records[1]);
+            // for(var records in records){
+            //     db.run(sqlInsertString, vals);
+            // }
         });
         
     },
@@ -97,7 +115,10 @@ Generator.prototype = {
 
         var that = this;
 
+        // tell user what's going on
         console.log('\nCREATING INTERNAL DATABASE'.blue);
+
+        // serialize table creation
         db.serialize(function() {
             for(var t in that.schema){
                 var table = that.dbFormatText(t);
@@ -109,10 +130,12 @@ Generator.prototype = {
                 console.log("CREATING TABLE".yellow, table);
                 db.run(createStatement);
             }
-            console.log("\nDATABASE CREATED".blue);
+            // after it's all said and done you can run the callback that presumably
+            // will now be importing the actual data
+            // make sure to call it here within serialize!
+            cb();
         });
 
-        cb();
     },
 
     /**
@@ -143,18 +166,21 @@ Generator.prototype = {
             // if we got here, the schema is ok, store schema for later use
             that.schema = schema;
 
-            // store files to process and kick off data import
-            glob(that.options.folder+"/*.txt", function(er, filePaths){
-                that.filesToProcess = filePaths;
-                // create database before import silly!
-                that.createDB(function(){
-                    // inform user of long running process about to go down
-                    console.log("\nIMPORTING".blue, filePaths.length, "FILES INTO DATABASE".blue, "\nThis will take a few minutes");
-                    eventEmitter.on('dataStreamedToSqlite', function(scope){
-                        that.importData(scope);
-                    });
-                    that.importData(that);
-                });
+            // we need to process the files in specific order
+            that.filesToProcess = config.filesToProcess.map(function(file){
+                return that.options.folder + "/" + file;
+            });
+
+            // register a listener here for streamed inputs
+            eventEmitter.on('streamDataToSqliteComplete', function(scope){
+                that.importData(scope);
+            });
+            
+            // create database before import silly!
+            that.createDB(function(){
+                // inform user of long running process about to go down
+                console.log("\nIMPORTING".blue, config.filesToProcess.length, "FILES INTO DATABASE".blue, "\nThis will take a few minutes");
+                that.importData(that);
             });
 
         });

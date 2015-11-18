@@ -69,9 +69,6 @@ Analyzer.prototype = {
               bufferSize: 64 * 1024
             });
 
-            // create data container
-            var fileData = '';
-
             // listen for data
             stream.on('data', function(data){
                 cb(filePath, that.getColumnNames(data));
