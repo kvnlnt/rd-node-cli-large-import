@@ -73,43 +73,42 @@ Generator.prototype = {
         });
 
         // when all done with streaming the file
-        // lineReader.on('close', function(){
+        lineReader.on('close', function(){
             
-        //     // chunk the records array to bolster bulk import performance
-        //     var chunks = _.chunk(records, 10000);
-        //     var recordCount = records.length;
+            // chunk the records array to bolster bulk import performance
+            var chunks = _.chunk(records, 10000);
+            var recordCount = records.length;
 
-        //     // tell user what's happening
-        //     console.log("RELEVANT RECORDS FOUND".yellow, humanize.numberFormat(recordCount, 0));
-        //     console.log("INSERTING RECORDS INTO".yellow, tableName);
+            // tell user what's happening
+            console.log("RELEVANT RECORDS FOUND".yellow, humanize.numberFormat(recordCount, 0));
+            console.log("INSERTING RECORDS INTO".yellow, tableName);
 
-        //     db.serialize(function() {
+            db.serialize(function() {
 
-        //         // loop and insert the chunks
-        //         for(var chunk in chunks){
+                // loop and insert the chunks
+                for(var chunk in chunks){
 
-        //             // create a big sqlite friendly values list like this ('val', 'val', 'val'), ('val', 'val', 'val'),...
-        //             var chunkRecords = chunks[chunk];
-        //             var values = chunkRecords.map(function(record){
-        //                 return "(" + record.map(function(val){
-        //                     return "'" + that.escape(val) + "'";
-        //                 }) + ")";
-        //             }).join(', ');
+                    // create a big sqlite friendly values list like this ('val', 'val', 'val'), ('val', 'val', 'val'),...
+                    var chunkRecords = chunks[chunk];
+                    var values = chunkRecords.map(function(record){
+                        return "(" + record.map(function(val){
+                            return "'" + that.escape(val) + "'";
+                        }) + ")";
+                    }).join(', ');
 
-        //             // build a final insert statement
-        //             var insertStatement = "INSERT INTO "+tableName+" ("+columns+") VALUES " + values;
+                    // build a final insert statement
+                    var insertStatement = "INSERT INTO "+tableName+" ("+columns+") VALUES " + values;
 
-        //             // run the insert statement
-        //             db.run(insertStatement);
+                    // run the insert statement
+                    db.run(insertStatement);
 
-        //         }
+                }
 
-        //         console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
-        //         that.importZipLevelLives();
+                console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
 
-        //     });
+            });
 
-        // });
+        });
 
     },
 
