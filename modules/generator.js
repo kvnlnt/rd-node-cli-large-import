@@ -9,6 +9,7 @@ var Analyzer = require('./analyzer');
 var humanize = require('humanize');
 var sqlite3 = require('sqlite3').verbose();
 var db = new sqlite3.Database('./data/db.sqlite');
+console.time("Execution Time");
 
 /**
  * Main Generator function
@@ -65,6 +66,7 @@ Generator.prototype = {
                 process.stdout.write("RECORDS INSERTED ".yellow + humanize.numberFormat(recordCount, 0) + " \r");
                 if(isLastSet){
                     console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
+                    console.timeEnd("Execution Time");
                 }
             });
         }
