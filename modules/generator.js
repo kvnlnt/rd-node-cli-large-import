@@ -38,12 +38,37 @@ Generator.prototype = {
         var schema = config.schema[this.getFileNameFromFilepath(filePath)];
         var instream = fs.createReadStream(filePath);
         var records = [];
+        var recordCount = 0;
 
         // empty the table first
         db.run("DELETE FROM " + tableName + " WHERE 1=1");
 
         // status update
         console.log("READING".yellow, filePath);
+        console.log("IMPORTING RECORDS INTO".yellow, tableName);
+
+        function insertRecords(isLastSet){
+
+            var isLastSet = isLastSet === void 0 ? false : true;
+
+            // serialize data
+            var values = records.map(function(record){
+                return "(" + record.map(function(val){
+                    return "'" + that.escape(val) + "'";
+                }) + ")";
+            }).join(', ');
+
+            // build a final insert statement
+            var insertStatement = "INSERT INTO "+tableName+" ("+columns+") VALUES " + values;
+
+            // run the insert statement
+            db.run(insertStatement, function(){
+                process.stdout.write("RECORDS INSERTED ".yellow + humanize.numberFormat(recordCount, 0) + " \r");
+                if(isLastSet){
+                    console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
+                }
+            });
+        }
 
         // create line reader interface
         var lineReader = readline.createInterface({
@@ -63,58 +88,29 @@ Generator.prototype = {
                 
             // if this is a match, collect it
             if(isMatch){
+
+                // only count relavant records
+                recordCount += 1;
+
+                // turn values into arrays
+                line_values = line.split('|');
+
                 // store values
                 records.push(line_values);
-                var showStatus = (records.length > 100000 ? records.length % 100000 : 100000 > records.length) === 0;
-                if(showStatus) process.stdout.write("RELEVANT RECORDS FOUND ".yellow + humanize.numberFormat(records.length, 0) + " \r");
 
+                // if records has reached 10,000 records, trigger insert
+                if(records.length === 10000){
+                    insertRecords();
+                    records = [];
+                }
             }
 
         });
 
         // when all done with streaming the file
         lineReader.on('close', function(){
-            
-            // chunk the records array to bolster bulk import performance
-            var chunks = _.chunk(records, 10000);
-            var recordCount = records.length;
-            var currChunk = 0; // due to serialization we need to keep track of records inserted ourselves
-
-            // tell user what's happening
-            console.log("RELEVANT RECORDS FOUND".yellow, humanize.numberFormat(recordCount, 0));
-            console.log("INSERTING RECORDS INTO".yellow, tableName);
-            console.log("processing...please wait");
-
-            db.serialize(function() {
-
-                // loop and insert the chunks
-                for(var chunk in chunks){
-
-                    // create a big sqlite friendly values list like this ('val', 'val', 'val'), ('val', 'val', 'val'),...
-                    var chunkRecords = chunks[chunk];
-                    var values = chunkRecords.map(function(record){
-                        return "(" + record.map(function(val){
-                            return "'" + that.escape(val) + "'";
-                        }) + ")";
-                    }).join(', ');
-
-                    // build a final insert statement
-                    var insertStatement = "INSERT INTO "+tableName+" ("+columns+") VALUES " + values;
-
-                    // run the insert statement
-                    db.run(insertStatement, function(){
-                        var recordsInserted = _.flatten(_.take(chunks, currChunk)).length;
-                        process.stdout.write("RECORDS INSERTED ".yellow + humanize.numberFormat(recordsInserted, 0) + " records \r");
-                        currChunk += 1;
-                        if(currChunk === chunks.length){
-                            console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
-                        }
-                    });
-
-                }
-
-            });
-
+            // grab the last remaining collected records
+            insertRecords(true);
         });
 
     },
@@ -133,6 +129,7 @@ Generator.prototype = {
         var re = new RegExp("("+config.filter.productList.join("|")+")", "gi");
         var instream = fs.createReadStream(filePath);
         var records = [];
+        var recordCount = 0;
 
         // empty the table first
         db.run("DELETE FROM " + tableName + " WHERE 1=1");
@@ -144,6 +141,31 @@ Generator.prototype = {
         });
 
         console.log("READING".yellow, filePath);
+        console.log("IMPORTING RECORDS INTO".yellow, tableName);
+
+        function insertRecords(isLastSet){
+
+            var isLastSet = isLastSet === void 0 ? false : true;
+
+            // serialize data
+            var values = records.map(function(record){
+                return "(" + record.map(function(val){
+                    return "'" + that.escape(val) + "'";
+                }) + ")";
+            }).join(', ');
+
+            // build a final insert statement
+            var insertStatement = "INSERT INTO "+tableName+" ("+columns+") VALUES " + values;
+
+            // run the insert statement
+            db.run(insertStatement, function(){
+                process.stdout.write("RECORDS INSERTED ".yellow + humanize.numberFormat(recordCount, 0) + " \r");
+                if(isLastSet){
+                    console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
+                    that.importZipLevelLives();
+                }
+            });
+        }
 
         // on each line, collect values
         lineReader.on('line', function(line) {
@@ -154,6 +176,9 @@ Generator.prototype = {
                 
             // if this is a match, collect it
             if(isMatch){
+
+                // only count relavant records
+                recordCount += 1;
 
                 // turn values into arrays
                 line_values = line.split('|');
@@ -166,8 +191,11 @@ Generator.prototype = {
                 // store values
                 records.push(line_values);
 
-                var showStatus = (records.length > 1000 ? records.length % 1000 : 1000 > records.length) === 0;
-                if(showStatus) process.stdout.write("RELEVANT RECORDS FOUND ".yellow + humanize.numberFormat(records.length, 0) + " \r");
+                // if records has reached 10,000 records, trigger insert
+                if(records.length === 10000){
+                    insertRecords();
+                    records = [];
+                }
 
             }
 
@@ -175,49 +203,8 @@ Generator.prototype = {
 
         // when all done with streaming the file
         lineReader.on('close', function(){
-            
-            // chunk the records array to bolster bulk import performance
-            var chunks = _.chunk(records, 10000);
-            var recordCount = records.length;
-            var currChunk = 0; // due to serialization we need to keep track of records inserted ourselves
-
-            // tell user what's happening
-            console.log("RELEVANT RECORDS FOUND".yellow, humanize.numberFormat(recordCount, 0));
-            console.log("INSERTING RECORDS INTO".yellow, tableName);
-
-            db.serialize(function() {
-
-                // loop and insert the chunks
-                for(var chunk in chunks){
-
-                    // create a big sqlite friendly values list like this ('val', 'val', 'val'), ('val', 'val', 'val'),...
-                    var chunkRecords = chunks[chunk];
-                    var values = chunkRecords.map(function(record){
-                        return "(" + record.map(function(val){
-                            return "'" + that.escape(val) + "'";
-                        }) + ")";
-                    }).join(', ');
-
-                    // build a final insert statement
-                    var insertStatement = "INSERT INTO "+tableName+" ("+columns+") VALUES " + values;
-
-                    // run the insert statement
-                    db.run(insertStatement, function(){
-                        var recordsInserted = _.flatten(_.take(chunks, currChunk)).length;
-                        process.stdout.write("RECORDS INSERTED ".yellow + humanize.numberFormat(recordsInserted, 0) + " records \r");
-                        currChunk += 1;
-
-                        // ok, it's finished we can move on
-                        if(currChunk === chunks.length){
-                            console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
-                            that.importZipLevelLives();
-                        }
-                    });
-
-                }
-                
-            });
-
+            // grab the last remaining collected records
+            insertRecords(true);
         });
     },
 
