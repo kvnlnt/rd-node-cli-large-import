@@ -16,7 +16,6 @@ var db = new sqlite3.Database('./data/db.sqlite');
  */
 function Generator(options){
     this.options = options || {};
-    this.unique_ff_plan_ids = [];
 }
 
 /**
@@ -81,28 +80,20 @@ Generator.prototype = {
 
             // turn values into arrays
             line_values = line.split('|');
-            var ff_plan_id = parseInt(line_values[0]);
 
-            // regex row
-            isMatch = that.unique_ff_plan_ids.indexOf(ff_plan_id) >= -1;
-                
-            // if this is a match, collect it
-            if(isMatch){
+            // only count relavant records
+            recordCount += 1;
 
-                // only count relavant records
-                recordCount += 1;
+            // turn values into arrays
+            line_values = line.split('|');
 
-                // turn values into arrays
-                line_values = line.split('|');
+            // store values
+            records.push(line_values);
 
-                // store values
-                records.push(line_values);
-
-                // if records has reached 10,000 records, trigger insert
-                if(records.length === 10000){
-                    insertRecords();
-                    records = [];
-                }
+            // if records has reached 10,000 records, trigger insert
+            if(records.length === 10000){
+                insertRecords();
+                records = [];
             }
 
         });
@@ -111,8 +102,8 @@ Generator.prototype = {
         lineReader.on('close', function(){
             // grab the last remaining collected records
             insertRecords(true);
+            records = [];
         });
-
     },
 
     importFormularyExtract: function(){
@@ -154,12 +145,14 @@ Generator.prototype = {
                 }) + ")";
             }).join(', ');
 
-            // build a final insert statement
+            // construct a bulk insert statement
             var insertStatement = "INSERT INTO "+tableName+" ("+columns+") VALUES " + values;
 
             // run the insert statement
             db.run(insertStatement, function(){
                 process.stdout.write("RECORDS INSERTED ".yellow + humanize.numberFormat(recordCount, 0) + " \r");
+
+                // if this was the last set, we're all done
                 if(isLastSet){
                     console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
                     that.importZipLevelLives();
@@ -174,7 +167,7 @@ Generator.prototype = {
             isMatch = line.match(re);
             this.next = that.importZipLevelLives;
                 
-            // if this is a match, collect it
+            // if this is a match, do stuff
             if(isMatch){
 
                 // only count relavant records
@@ -182,11 +175,6 @@ Generator.prototype = {
 
                 // turn values into arrays
                 line_values = line.split('|');
-
-                var ff_plan_id = parseInt(line_values[0]);
-                if(that.unique_ff_plan_ids.indexOf(ff_plan_id) == -1){
-                    that.unique_ff_plan_ids.push(ff_plan_id);
-                }
 
                 // store values
                 records.push(line_values);
@@ -205,6 +193,7 @@ Generator.prototype = {
         lineReader.on('close', function(){
             // grab the last remaining collected records
             insertRecords(true);
+            records = [];
         });
     },
 
