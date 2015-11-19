@@ -28,7 +28,7 @@ Generator.prototype = {
     importZipLevelLives: function(){
 
         // inform user of long running process about to go down
-        console.log("\nIMPORTING ZIP LEVEL LIVES DATA INTO DATABASE".blue);
+        console.log("IMPORTING ZIP LEVEL LIVES DATA INTO DATABASE".blue);
 
         var that = this;
         var filePath = this.options.folder + "/ZIP LEVEL LIVES.TXT";
@@ -65,7 +65,7 @@ Generator.prototype = {
             if(isMatch){
                 // store values
                 records.push(line_values);
-                var showStatus = (records.length > 10000 ? records.length % 10000 : 10000 > records.length) === 0;
+                var showStatus = (records.length > 100000 ? records.length % 100000 : 100000 > records.length) === 0;
                 if(showStatus) process.stdout.write("RELEVANT RECORDS FOUND ".yellow + humanize.numberFormat(records.length, 0) + " \r");
 
             }
@@ -78,10 +78,12 @@ Generator.prototype = {
             // chunk the records array to bolster bulk import performance
             var chunks = _.chunk(records, 10000);
             var recordCount = records.length;
+            var currChunk = 0; // due to serialization we need to keep track of records inserted ourselves
 
             // tell user what's happening
             console.log("RELEVANT RECORDS FOUND".yellow, humanize.numberFormat(recordCount, 0));
             console.log("INSERTING RECORDS INTO".yellow, tableName);
+            console.log("processing...please wait");
 
             db.serialize(function() {
 
@@ -100,11 +102,16 @@ Generator.prototype = {
                     var insertStatement = "INSERT INTO "+tableName+" ("+columns+") VALUES " + values;
 
                     // run the insert statement
-                    db.run(insertStatement);
+                    db.run(insertStatement, function(){
+                        var recordsInserted = _.flatten(_.take(chunks, currChunk)).length;
+                        process.stdout.write("RECORDS INSERTED ".yellow + humanize.numberFormat(recordsInserted, 0) + " records \r");
+                        currChunk += 1;
+                        if(currChunk === chunks.length){
+                            console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
+                        }
+                    });
 
                 }
-
-                console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
 
             });
 
@@ -172,6 +179,7 @@ Generator.prototype = {
             // chunk the records array to bolster bulk import performance
             var chunks = _.chunk(records, 10000);
             var recordCount = records.length;
+            var currChunk = 0; // due to serialization we need to keep track of records inserted ourselves
 
             // tell user what's happening
             console.log("RELEVANT RECORDS FOUND".yellow, humanize.numberFormat(recordCount, 0));
@@ -194,13 +202,20 @@ Generator.prototype = {
                     var insertStatement = "INSERT INTO "+tableName+" ("+columns+") VALUES " + values;
 
                     // run the insert statement
-                    db.run(insertStatement);
+                    db.run(insertStatement, function(){
+                        var recordsInserted = _.flatten(_.take(chunks, currChunk)).length;
+                        process.stdout.write("RECORDS INSERTED ".yellow + humanize.numberFormat(recordsInserted, 0) + " records \r");
+                        currChunk += 1;
+
+                        // ok, it's finished we can move on
+                        if(currChunk === chunks.length){
+                            console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
+                            that.importZipLevelLives();
+                        }
+                    });
 
                 }
-
-                console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
-                that.importZipLevelLives();
-
+                
             });
 
         });
