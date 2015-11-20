@@ -8,7 +8,10 @@ var colors = require('colors');
 var Analyzer = require('./analyzer');
 var humanize = require('humanize');
 var sqlite3 = require('sqlite3').verbose();
-var db = new sqlite3.Database('./data/db.sqlite');
+var db = new sqlite3.Database('./db/db.sqlite');
+var export_formulary_file = fs.createWriteStream('db/formulary.sql');
+var export_zip_file = fs.createWriteStream('db/zip.sql');
+
 console.time("Execution Time");
 
 /**
@@ -108,6 +111,16 @@ Generator.prototype = {
         });
     },
 
+    writeToFormularyExportFile: function(columns, values){
+
+        var columnsUsed = [0];
+
+
+        // we use this opportunity to construct our export statements
+        var formularyInsertStatement = "INSERT INTO "+formularyTableName+" \n ("+columns+") \nVALUES \n" + values; 
+        export_formulary_file.write(formularyInsertStatement + ";\r\n\r\n");
+    },
+
     importFormularyExtract: function(){
 
         // inform user of long running process about to go down
@@ -121,6 +134,7 @@ Generator.prototype = {
         var schema = config.schema[this.getFileNameFromFilepath(filePath)];
         var re = new RegExp("("+config.filter.productList.join("|")+")", "gi");
         var instream = fs.createReadStream(filePath);
+        
         var records = [];
         var recordCount = 0;
 
@@ -139,16 +153,17 @@ Generator.prototype = {
         function insertRecords(isLastSet){
 
             var isLastSet = isLastSet === void 0 ? false : true;
+            that.writeToFormularyExportFile(columns, records);
 
             // serialize data
             var values = records.map(function(record){
                 return "(" + record.map(function(val){
                     return "'" + that.escape(val) + "'";
                 }) + ")";
-            }).join(', ');
+            }).join(',\n');
 
             // construct a bulk insert statement
-            var insertStatement = "INSERT INTO "+tableName+" ("+columns+") VALUES " + values;
+            var insertStatement = "INSERT INTO "+tableName+" \n ("+columns+") \nVALUES \n" + values;
 
             // run the insert statement
             db.run(insertStatement, function(){
@@ -157,7 +172,8 @@ Generator.prototype = {
                 // if this was the last set, we're all done
                 if(isLastSet){
                     console.log("RECORDS INSERTED".yellow, humanize.numberFormat(recordCount, 0), "\n");
-                    that.importZipLevelLives();
+                    formularySqlStream.close();
+                    // that.importZipLevelLives();
                 }
             });
         }
@@ -261,6 +277,13 @@ Generator.prototype = {
                 console.log("CREATING TABLE".yellow, tableName);
                 db.run(createStatement);
             }
+
+            // create indexes
+            var fe_index = "CREATE INDEX IF NOT EXISTS INDEX_ID_ON_FORMULARY_EXTRACT ON FORMULARY_EXTRACT(FF_PLAN_ID, DRUG_NAME);"
+            db.run(fe_index);
+            var zpl_index = "CREATE INDEX IF NOT EXISTS INDEX_ID_ON_ZIP_LEVEL_LIVES ON ZIP_LEVEL_LIVES(FF_PLAN_ID);";
+            db.run(zpl_index);
+
             // in each run callback and then run this final callback
             done();
         });
